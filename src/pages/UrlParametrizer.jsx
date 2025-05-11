@@ -110,6 +110,7 @@ const UrlParametrizer = () => {
       message.success('URL excluída com sucesso!');
     }
   };
+  
 
   const handleCopyUrl = () => {
     if (resultUrl) {
