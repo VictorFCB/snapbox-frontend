@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Row, Col, Card, Input, Button, Space, Checkbox, Select, Typography, Modal, Upload, message, Popconfirm
+  Row, Col, Card, Input, Button, Space, Checkbox, Select, Typography, Modal, Upload, message
 } from 'antd';
-import { PlusOutlined, CopyOutlined } from '@ant-design/icons';
+import { PlusOutlined, CopyOutlined, EditOutlined, SaveOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
 const { Title, Text } = Typography;
@@ -22,8 +22,37 @@ const utmOptions = {
 const handleApiError = (error, defaultMessage) => {
   console.error(error);
   message.error(defaultMessage);
-  return null;
 };
+
+const compressImage = (file, maxWidth = 800, quality = 0.7) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = event => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const scale = maxWidth / img.width;
+        const width = maxWidth;
+        const height = img.height * scale;
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          blob => blob ? resolve(blob) : reject(new Error('Erro ao comprimir a imagem.')),
+          'image/jpeg',
+          quality
+        );
+      };
+      img.onerror = () => reject(new Error('Erro ao carregar imagem.'));
+    };
+    reader.onerror = () => reject(new Error('Erro ao ler o arquivo.'));
+    reader.readAsDataURL(file);
+  });
+};
+
+// ... imports e constantes como estavam
 
 const UrlParametrizer = () => {
   const [baseUrl, setBaseUrl] = useState('');
@@ -31,21 +60,25 @@ const UrlParametrizer = () => {
   const [params, setParams] = useState({});
   const [resultUrl, setResultUrl] = useState('');
   const [savedUrls, setSavedUrls] = useState([]);
-  const [imageUrl, setImageUrl] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedUrl, setSelectedUrl] = useState(null);
   const [newCampaignName, setNewCampaignName] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const [showNameModal, setShowNameModal] = useState(false); // NOVO
+  const [campaignNameToSave, setCampaignNameToSave] = useState(''); // NOVO
   const agencyName = 'FCBHEALTH';
   const API_URL = process.env.REACT_APP_API_URL;
 
+  const fetchSavedUrls = async () => {
+    const response = await axios.get(`${API_URL}/urls`).catch(error =>
+      handleApiError(error, 'Erro ao buscar URLs salvas')
+    );
+    if (response) setSavedUrls(response.data);
+  };
+
   useEffect(() => {
-    const fetchSavedUrls = async () => {
-      const response = await axios.get(`${API_URL}/urls`).catch(error =>
-        handleApiError(error, 'Erro ao buscar URLs salvas')
-      );
-      if (response) setSavedUrls(response.data);
-    };
     fetchSavedUrls();
   }, [API_URL]);
 
@@ -63,7 +96,7 @@ const UrlParametrizer = () => {
     const formData = new FormData();
     formData.append('baseUrl', baseUrl);
     formData.append('params', JSON.stringify(selectedValues));
-    if (imageUrl) formData.append('image', imageUrl);
+    if (imageFile) formData.append('image', imageFile);
 
     const response = await axios.post(`${API_URL}/parametrize-url`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
@@ -75,42 +108,56 @@ const UrlParametrizer = () => {
     }
   };
 
-  const handleSaveUrl = async () => {
+  // Abre o modal de nome
+  const handleSaveUrl = () => {
     if (!resultUrl) return message.warning('Por favor, gere a URL antes de salvar.');
+    setCampaignNameToSave('');
+    setShowNameModal(true);
+  };
 
-    const savedUrl = {
-      name: `Campanha ${savedUrls.length + 1}`,
-      url: resultUrl,
-      image: imageUrl || null
-    };
+  // Confirma o nome e salva no backend
+  const confirmSaveUrl = async () => {
+    try {
+      const formData = new FormData();
+      formData.append('name', campaignNameToSave || `Campanha ${savedUrls.length + 1}`);
+      formData.append('url', resultUrl);
+      if (imageFile) formData.append('image', imageFile);
 
-    const response = await axios.post(`${API_URL}/save-url`, savedUrl)
-      .catch(error => handleApiError(error, 'Erro ao salvar URL.'));
+      const response = await axios.post(`${API_URL}/save-url`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
 
-    if (response) {
-      setSavedUrls([...savedUrls, savedUrl]);
-      setBaseUrl('');
-      setParams({});
-      setSelectedParams([]);
-      setImageUrl(null);
-      setResultUrl('');
+      if (response) {
+        await fetchSavedUrls();
+        setBaseUrl('');
+        setParams({});
+        setSelectedParams([]);
+        setImagePreview(null);
+        setImageFile(null);
+        setResultUrl('');
+        setCampaignNameToSave('');
+        setShowNameModal(false);
+        message.success('URL salva com sucesso!');
+      }
+    } catch (error) {
+      handleApiError(error, 'Erro ao salvar URL.');
     }
   };
 
   const handleDelete = async () => {
     if (!selectedUrl?.id) return message.error('ID inválido para exclusão');
-  
+
     const response = await axios.delete(`${API_URL}/urls/${selectedUrl.id}`)
       .catch(error => handleApiError(error, 'Erro ao excluir a URL'));
-  
+
     if (response) {
-      setSavedUrls(prev => prev.filter(url => url.id !== selectedUrl.id));
-      setSelectedUrl(null); // limpa o item selecionado
+      setSavedUrls(savedUrls.filter(url => url.id !== selectedUrl.id));
       setIsModalVisible(false);
       message.success('URL excluída com sucesso!');
     }
   };
-  
 
   const handleCopyUrl = () => {
     if (resultUrl) {
@@ -146,7 +193,6 @@ const UrlParametrizer = () => {
           allowClear
         />
       )}
-
       {selectedParams.includes('utm_medium') && (
         <Select
           placeholder="utm_medium"
@@ -156,7 +202,6 @@ const UrlParametrizer = () => {
           allowClear
         />
       )}
-
       {PARAMS_LIST.filter(p => selectedParams.includes(p) && !utmOptions[p]).map(param => (
         <Input
           key={param}
@@ -173,25 +218,7 @@ const UrlParametrizer = () => {
       savedUrls.map((savedUrl, index) => (
         <Card
           key={index}
-          title={
-            isEditing && selectedUrl?.url === savedUrl.url ? (
-              <Input
-                value={newCampaignName}
-                onChange={(e) => setNewCampaignName(e.target.value)}
-                onKeyDown={handleEditCampaignName}
-                autoFocus
-                onClick={(e) => e.stopPropagation()}
-              />
-            ) : (
-              <div onClick={() => {
-                setSelectedUrl(savedUrl);
-                setNewCampaignName(savedUrl.name);
-                setIsEditing(true);
-              }}>
-                {savedUrl.name}
-              </div>
-            )
-          }
+          title={savedUrl.name}
           size="small"
           style={{ marginBottom: 12, cursor: 'pointer', width: '100%', borderRadius: 8 }}
           cover={savedUrl.image && (
@@ -201,7 +228,6 @@ const UrlParametrizer = () => {
           )}
           onClick={() => {
             setSelectedUrl(savedUrl);
-            setNewCampaignName(savedUrl.name);
             setIsModalVisible(true);
           }}
         >
@@ -215,6 +241,7 @@ const UrlParametrizer = () => {
 
   return (
     <Row gutter={[24, 24]} justify="center" style={{ padding: '20px', margin: 0 }}>
+      {/* Coluna lateral esquerda */}
       <Col xs={24} md={6}>
         <Card title={<Title level={4}>Parametrizar URL</Title>} style={{ borderRadius: 8 }}>
           <Space direction="vertical" style={{ width: '100%' }}>
@@ -234,6 +261,7 @@ const UrlParametrizer = () => {
         </Card>
       </Col>
 
+      {/* Geração de URL */}
       <Col xs={24} md={12}>
         <Card title={<Title level={4}>Geração de URL</Title>} style={{ borderRadius: 8 }}>
           <Space direction="vertical" style={{ width: '100%' }} size="middle">
@@ -249,15 +277,24 @@ const UrlParametrizer = () => {
                 <Upload
                   listType="picture-card"
                   showUploadList={false}
-                  beforeUpload={(file) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => setImageUrl(e.target.result);
-                    reader.readAsDataURL(file);
-                    return false;
+                  beforeUpload={async (file) => {
+                    try {
+                      const compressedBlob = await compressImage(file);
+                      const compressedFile = new File([compressedBlob], file.name, { type: 'image/jpeg' });
+
+                      const reader = new FileReader();
+                      reader.onload = (e) => setImagePreview(e.target.result);
+                      reader.readAsDataURL(compressedFile);
+                      setImageFile(compressedFile);
+                      return false;
+                    } catch {
+                      message.error('Erro ao comprimir a imagem.');
+                      return false;
+                    }
                   }}
                 >
-                  {imageUrl ? (
-                    <img src={imageUrl} alt="Imagem" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {imagePreview ? (
+                    <img src={imagePreview} alt="Imagem" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     <div>
                       <PlusOutlined />
@@ -281,23 +318,9 @@ const UrlParametrizer = () => {
                   <>
                     <Input
                       value={resultUrl}
-                      style={{
-                        width: '100%',
-                        height: 40,
-                        fontSize: 14,
-                        textOverflow: 'ellipsis',
-                        overflow: 'hidden',
-                        whiteSpace: 'nowrap',
-                      }}
                       readOnly
-                      suffix={
-                        <Button
-                          type="text"
-                          icon={<CopyOutlined />}
-                          onClick={handleCopyUrl}
-                          style={{ padding: 0 }}
-                        />
-                      }
+                      style={{ width: '100%', height: 40, fontSize: 14, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}
+                      suffix={<Button type="text" icon={<CopyOutlined />} onClick={handleCopyUrl} style={{ padding: 0 }} />}
                     />
                     <Button type="default" onClick={handleSaveUrl} style={{ width: '100%' }}>
                       Salvar URL
@@ -310,6 +333,7 @@ const UrlParametrizer = () => {
         </Card>
       </Col>
 
+      {/* URLs salvas */}
       <Col xs={24} md={6}>
         <Card title={<Title level={4}>URLs Salvas</Title>} style={{ borderRadius: 8 }}>
           <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
@@ -318,31 +342,45 @@ const UrlParametrizer = () => {
         </Card>
       </Col>
 
+      {/* Modal de visualização */}
       <Modal
         title="Visualizar URL"
         visible={isModalVisible}
         onCancel={() => setIsModalVisible(false)}
         footer={[
-          <Button key="delete" danger onClick={handleDelete}>
-            Excluir
-          </Button>,
-          <Button key="close" onClick={() => setIsModalVisible(false)}>
-            Fechar
-          </Button>,
-          <Button key="copy" type="primary" icon={<CopyOutlined />} onClick={handleCopyUrl}>
-            Copiar URL
-          </Button>,
+          <Button key="delete" danger onClick={handleDelete}>Excluir</Button>,
+          <Button key="close" onClick={() => setIsModalVisible(false)}>Fechar</Button>,
+          <Button key="copy" type="primary" icon={<CopyOutlined />} onClick={handleCopyUrl}>Copiar URL</Button>,
         ]}
       >
         {selectedUrl && (
-          <>
+          <Space direction="vertical" style={{ width: '100%' }}>
             <Title level={5}>Campanha: {selectedUrl.name}</Title>
             <Text>{selectedUrl.url}</Text>
-          </>
+            {selectedUrl.image && (
+              <img src={selectedUrl.image} alt="Imagem da campanha" style={{ maxWidth: '100%', maxHeight: 200, objectFit: 'contain', marginTop: 12 }} />
+            )}
+          </Space>
         )}
+      </Modal>
+
+      {/* Modal para nome da campanha */}
+      <Modal
+        title="Nome da campanha"
+        visible={showNameModal}
+        onCancel={() => setShowNameModal(false)}
+        onOk={confirmSaveUrl}
+        okText="Salvar"
+      >
+        <Input
+          placeholder="Digite o nome da campanha"
+          value={campaignNameToSave}
+          onChange={(e) => setCampaignNameToSave(e.target.value)}
+        />
       </Modal>
     </Row>
   );
 };
 
 export default UrlParametrizer;
+
