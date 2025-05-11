@@ -1,0 +1,15 @@
+services:
+  - type: static_site
+    name: snapbox-frontend
+    env: static
+    buildCommand: npm run build
+    publishDirectory: ./build_prod
+    # Caso você esteja usando um servidor customizado, como o Nginx, você pode configurar aqui
+    # routes:
+    #   - src: /.*       # Para redirecionar todas as requisições para o index.html
+    #     dest: /index.html
+    autoDeploy: true
+    # Se necessário, adicione variáveis de ambiente aqui:
+    # envVars:
+    #   - key: REACT_APP_API_URL
+    #     value: https://snapbox-backend.onrender.com
