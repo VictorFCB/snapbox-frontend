@@ -93,6 +93,10 @@ docker-compose.override.yml
 docker-sync.yml
 .env.docker
 .env.db
+
+# Ignorar a pasta build
+/build
+/build_prod
  
 # Dependências Node.js
 npm-debug.log*
