@@ -99,12 +99,13 @@ const UrlParametrizer = () => {
 
   const handleDelete = async () => {
     if (!selectedUrl?.id) return message.error('ID inválido para exclusão');
-
+  
     const response = await axios.delete(`${API_URL}/urls/${selectedUrl.id}`)
       .catch(error => handleApiError(error, 'Erro ao excluir a URL'));
-
+  
     if (response) {
-      setSavedUrls(savedUrls.filter(url => url.id !== selectedUrl.id));
+      setSavedUrls(prev => prev.filter(url => url.id !== selectedUrl.id));
+      setSelectedUrl(null); // limpa o item selecionado
       setIsModalVisible(false);
       message.success('URL excluída com sucesso!');
     }
