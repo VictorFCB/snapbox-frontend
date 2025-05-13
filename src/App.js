@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import AppHeader from './components/AppHeader';
 import AppRoutes from './router/AppRouter';
-import { BrowserRouter, useLocation } from 'react-router-dom';
+import { HashRouter, useLocation } from 'react-router-dom'; 
 
 const RouteTracker = () => {
   const location = useLocation();
@@ -20,13 +20,13 @@ const RouteTracker = () => {
 
 const App = () => {
   return (
-    <BrowserRouter>
+    <HashRouter> 
       <RouteTracker />
       <AppHeader />
       <div style={{ paddingTop: '64px', height: 'calc(100vh - 64px)' }}>
         <AppRoutes />
       </div>
-    </BrowserRouter>
+    </HashRouter>
   );
 };
 
