@@ -37,12 +37,11 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // Envia o pedido para o backend para gerar e enviar o código de verificação
       const response = await axios.post(`${process.env.REACT_APP_API_URL}/send-verification-code`, { email });
 
       if (response.data.success) {
         message.success('Código de verificação enviado para seu e-mail.');
-        setStage('code'); // Muda para o estágio onde o usuário insere o código
+        setStage('code'); 
       } else {
         message.error('Erro ao enviar código de verificação.');
       }
@@ -53,32 +52,35 @@ const Login = () => {
     }
   };
 
-  // Função para verificar o código inserido
   const handleVerifyCode = async () => {
     if (!code) {
       message.warning('Por favor, insira o código de verificação.');
       return;
     }
-
+  
     setLoading(true);
-
+  
     try {
-      // Aqui você irá enviar o código de verificação para o backend para validar
       const response = await axios.post(`${process.env.REACT_APP_API_URL}/verify-code`, {
         email,
         code
       });
-
+  
       if (response.data.success) {
         message.success('Código verificado com sucesso!');
-        const { token } = response.data;
-
+        const { token, isAdmin } = response.data;
+  
         // Salvar o token JWT e o e-mail do usuário no localStorage
         localStorage.setItem('auth_token', token);
         localStorage.setItem('auth_email', email);
-
-        // Redirecionar para o Home ou outra página
-        navigate('/Home');
+        localStorage.setItem('is_admin', isAdmin);  // Salvar se é admin
+  
+        // Redirecionar para o Home ou Admin dependendo do tipo de usuário
+        if (isAdmin) {
+          navigate('/Admin');
+        } else {
+          navigate('/Home');
+        }
       } else {
         message.error('Código inválido. Tente novamente.');
       }
@@ -88,6 +90,7 @@ const Login = () => {
       setLoading(false);
     }
   };
+  
 
   return (
     <Layout style={{ minHeight: '100vh' }}>

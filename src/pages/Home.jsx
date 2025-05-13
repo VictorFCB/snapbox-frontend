@@ -95,7 +95,6 @@ const Home = () => {
   );
 
   return (
-    <Layout>
       <Content style={{ padding: '24px' }}>
         <Card title="Upload de Arquivo" style={{ marginBottom: 24 }}>
           <Upload
@@ -126,8 +125,6 @@ const Home = () => {
         </Card>
       </Content>
 
-      <Footer style={{ textAlign: 'center' }}>SnapBox © {new Date().getFullYear()}</Footer>
-    </Layout>
   );
 };
 
