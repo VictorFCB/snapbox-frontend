@@ -52,8 +52,6 @@ const compressImage = (file, maxWidth = 800, quality = 0.7) => {
   });
 };
 
-// ... imports e constantes como estavam
-
 const UrlParametrizer = () => {
   const [baseUrl, setBaseUrl] = useState('');
   const [selectedParams, setSelectedParams] = useState([]);
@@ -66,16 +64,20 @@ const UrlParametrizer = () => {
   const [selectedUrl, setSelectedUrl] = useState(null);
   const [newCampaignName, setNewCampaignName] = useState('');
   const [isEditing, setIsEditing] = useState(false);
-  const [showNameModal, setShowNameModal] = useState(false); // NOVO
-  const [campaignNameToSave, setCampaignNameToSave] = useState(''); // NOVO
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [campaignNameToSave, setCampaignNameToSave] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const agencyName = 'FCBHEALTH';
   const API_URL = process.env.REACT_APP_API_URL;
 
   const fetchSavedUrls = async () => {
-    const response = await axios.get(`${API_URL}/urls`).catch(error =>
-      handleApiError(error, 'Erro ao buscar URLs salvas')
-    );
-    if (response) setSavedUrls(response.data);
+    try {
+      const response = await axios.get(`${API_URL}/urls`);
+      setSavedUrls(response.data);
+    } catch (error) {
+      handleApiError(error, 'Erro ao buscar URLs salvas');
+    }
   };
 
   useEffect(() => {
@@ -87,36 +89,48 @@ const UrlParametrizer = () => {
   };
 
   const handleParametrize = async () => {
-    if (!baseUrl) return message.warning('A URL base é obrigatória!');
+    if (!baseUrl) {
+      message.warning('A URL base é obrigatória!');
+      return;
+    }
 
-    const selectedValues = PARAMS_LIST
-      .filter(param => selectedParams.includes(param) && params[param])
-      .reduce((acc, param) => ({ ...acc, [param]: params[param] }), { agencia: agencyName });
+    setIsGenerating(true);
+    try {
+      const selectedValues = PARAMS_LIST
+        .filter(param => selectedParams.includes(param) && params[param])
+        .reduce((acc, param) => ({ ...acc, [param]: params[param] }), { agencia: agencyName });
 
-    const formData = new FormData();
-    formData.append('baseUrl', baseUrl);
-    formData.append('params', JSON.stringify(selectedValues));
-    if (imageFile) formData.append('image', imageFile);
+      const formData = new FormData();
+      formData.append('baseUrl', baseUrl);
+      formData.append('params', JSON.stringify(selectedValues));
+      if (imageFile) formData.append('image', imageFile);
 
-    const response = await axios.post(`${API_URL}/parametrize-url`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }).catch(error => handleApiError(error, 'Erro ao gerar URL parametrizada.'));
+      const response = await axios.post(`${API_URL}/parametrize-url`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
 
-    if (response) {
       setResultUrl(response.data.parametrizedUrl);
       message.success('URL parametrizada com sucesso!');
+    } catch (error) {
+      handleApiError(error, 'Erro ao gerar URL parametrizada.');
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  // Abre o modal de nome
   const handleSaveUrl = () => {
-    if (!resultUrl) return message.warning('Por favor, gere a URL antes de salvar.');
+    if (!resultUrl) {
+      message.warning('Por favor, gere a URL antes de salvar.');
+      return;
+    }
     setCampaignNameToSave('');
     setShowNameModal(true);
   };
 
-  // Confirma o nome e salva no backend
   const confirmSaveUrl = async () => {
+    if (isSaving) return;
+    
+    setIsSaving(true);
     try {
       const formData = new FormData();
       formData.append('name', campaignNameToSave || `Campanha ${savedUrls.length + 1}`);
@@ -124,38 +138,43 @@ const UrlParametrizer = () => {
       if (imageFile) formData.append('image', imageFile);
 
       const response = await axios.post(`${API_URL}/save-url`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      if (response) {
-        await fetchSavedUrls();
-        setBaseUrl('');
-        setParams({});
-        setSelectedParams([]);
-        setImagePreview(null);
-        setImageFile(null);
-        setResultUrl('');
-        setCampaignNameToSave('');
-        setShowNameModal(false);
-        message.success('URL salva com sucesso!');
-      }
+      await fetchSavedUrls();
+      resetForm();
+      message.success('URL salva com sucesso!');
     } catch (error) {
       handleApiError(error, 'Erro ao salvar URL.');
+    } finally {
+      setIsSaving(false);
+      setShowNameModal(false);
     }
   };
 
+  const resetForm = () => {
+    setBaseUrl('');
+    setParams({});
+    setSelectedParams([]);
+    setImagePreview(null);
+    setImageFile(null);
+    setResultUrl('');
+    setCampaignNameToSave('');
+  };
+
   const handleDelete = async () => {
-    if (!selectedUrl?.id) return message.error('ID inválido para exclusão');
+    if (!selectedUrl?.id) {
+      message.error('ID inválido para exclusão');
+      return;
+    }
 
-    const response = await axios.delete(`${API_URL}/urls/${selectedUrl.id}`)
-      .catch(error => handleApiError(error, 'Erro ao excluir a URL'));
-
-    if (response) {
+    try {
+      await axios.delete(`${API_URL}/urls/${selectedUrl.id}`);
       setSavedUrls(savedUrls.filter(url => url.id !== selectedUrl.id));
       setIsModalVisible(false);
       message.success('URL excluída com sucesso!');
+    } catch (error) {
+      handleApiError(error, 'Erro ao excluir a URL');
     }
   };
 
@@ -168,16 +187,18 @@ const UrlParametrizer = () => {
 
   const handleEditCampaignName = async (e) => {
     if (e.key === 'Enter' && selectedUrl?.id) {
-      const response = await axios.put(`${API_URL}/urls/${selectedUrl.id}`, {
-        name: newCampaignName
-      }).catch(error => handleApiError(error, 'Erro ao atualizar nome da campanha.'));
-
-      if (response) {
+      try {
+        await axios.put(`${API_URL}/urls/${selectedUrl.id}`, {
+          name: newCampaignName
+        });
+        
         setSavedUrls(savedUrls.map(url =>
           url.id === selectedUrl.id ? { ...url, name: newCampaignName } : url
         ));
         setIsEditing(false);
         message.success('Nome da campanha atualizado!');
+      } catch (error) {
+        handleApiError(error, 'Erro ao atualizar nome da campanha.');
       }
     }
   };
@@ -309,8 +330,13 @@ const UrlParametrizer = () => {
 
             <Row justify="space-between" align="middle">
               <Col span={16}>
-                <Button type="primary" onClick={handleParametrize} style={{ width: '100%' }}>
-                  Gerar URL
+                <Button 
+                  type="primary" 
+                  onClick={handleParametrize} 
+                  style={{ width: '100%' }}
+                  loading={isGenerating}
+                >
+                  {isGenerating ? 'Gerando...' : 'Gerar URL'}
                 </Button>
               </Col>
               <Col span={6} style={{ paddingLeft: '10px' }}>
@@ -322,7 +348,11 @@ const UrlParametrizer = () => {
                       style={{ width: '100%', height: 40, fontSize: 14, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}
                       suffix={<Button type="text" icon={<CopyOutlined />} onClick={handleCopyUrl} style={{ padding: 0 }} />}
                     />
-                    <Button type="default" onClick={handleSaveUrl} style={{ width: '100%' }}>
+                    <Button 
+                      type="default" 
+                      onClick={handleSaveUrl} 
+                      style={{ width: '100%' }}
+                    >
                       Salvar URL
                     </Button>
                   </>
@@ -350,7 +380,10 @@ const UrlParametrizer = () => {
         footer={[
           <Button key="delete" danger onClick={handleDelete}>Excluir</Button>,
           <Button key="close" onClick={() => setIsModalVisible(false)}>Fechar</Button>,
-          <Button key="copy" type="primary" icon={<CopyOutlined />} onClick={handleCopyUrl}>Copiar URL</Button>,
+          <Button key="copy" type="primary" icon={<CopyOutlined />} onClick={() => {
+            navigator.clipboard.writeText(selectedUrl?.url || '');
+            message.success('URL copiada para a área de transferência!');
+          }}>Copiar URL</Button>,
         ]}
       >
         {selectedUrl && (
@@ -368,14 +401,18 @@ const UrlParametrizer = () => {
       <Modal
         title="Nome da campanha"
         visible={showNameModal}
-        onCancel={() => setShowNameModal(false)}
+        onCancel={() => !isSaving && setShowNameModal(false)}
         onOk={confirmSaveUrl}
-        okText="Salvar"
+        okText={isSaving ? 'Salvando...' : 'Salvar'}
+        okButtonProps={{ loading: isSaving, disabled: isSaving }}
+        cancelButtonProps={{ disabled: isSaving }}
       >
         <Input
           placeholder="Digite o nome da campanha"
           value={campaignNameToSave}
           onChange={(e) => setCampaignNameToSave(e.target.value)}
+          disabled={isSaving}
+          onPressEnter={confirmSaveUrl}
         />
       </Modal>
     </Row>
@@ -383,4 +420,3 @@ const UrlParametrizer = () => {
 };
 
 export default UrlParametrizer;
-

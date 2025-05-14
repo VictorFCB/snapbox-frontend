@@ -41,7 +41,7 @@ const Login = () => {
 
       if (response.data.success) {
         message.success('Código de verificação enviado para seu e-mail.');
-        setStage('code'); 
+        setStage('code');
       } else {
         message.error('Erro ao enviar código de verificação.');
       }
@@ -57,24 +57,24 @@ const Login = () => {
       message.warning('Por favor, insira o código de verificação.');
       return;
     }
-  
+
     setLoading(true);
-  
+
     try {
       const response = await axios.post(`${process.env.REACT_APP_API_URL}/verify-code`, {
         email,
         code
       });
-  
+
       if (response.data.success) {
         message.success('Código verificado com sucesso!');
         const { token, isAdmin } = response.data;
-  
+
         // Salvar o token JWT e o e-mail do usuário no localStorage
         localStorage.setItem('auth_token', token);
         localStorage.setItem('auth_email', email);
         localStorage.setItem('is_admin', isAdmin);  // Salvar se é admin
-  
+
         // Redirecionar para o Home ou Admin dependendo do tipo de usuário
         if (isAdmin) {
           navigate('/Admin');
@@ -90,13 +90,16 @@ const Login = () => {
       setLoading(false);
     }
   };
-  
+
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Content style={{ padding: '24px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-      <Card title={stage === 'email' ? 'Verificação de E-mail' : 'Insira o Código'} style={{ width: 400 }}>
-          <Form layout="vertical">
+        <Card title={stage === 'email' ? 'Verificação de E-mail' : 'Insira o Código'} style={{ width: 400 }}>
+          <Form
+            layout="vertical"
+            onFinish={stage === 'email' ? handleEmailSubmit : handleVerifyCode} // Enter aciona aqui
+          >
             {stage === 'email' ? (
               <>
                 <Form.Item label="E-mail" required>
@@ -111,9 +114,9 @@ const Login = () => {
                 <Form.Item>
                   <Button
                     type="primary"
+                    htmlType="submit"  // Enter e clique funcionam
                     block
                     loading={loading}
-                    onClick={handleEmailSubmit}
                   >
                     Enviar Código
                   </Button>
@@ -121,71 +124,72 @@ const Login = () => {
               </>
             ) : (
               <>
-              <div style={{ textAlign: 'center', marginBottom: 16 }}>
-                <p style={{ fontSize: 14, color: '#555' }}>
-                  Um código foi enviado para <strong>{email}</strong>
-                </p>
-              </div>
-            
-              <Form.Item label={<span style={{ fontWeight: 500 }}>Código de Verificação</span>} required>
-                <Input
-                  type="text"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  placeholder="Código"
-                  style={{
-                    fontSize: '18px',
-                    textAlign: 'center',
-                    letterSpacing: '6px',
-                    padding: '10px 14px',
-                    borderRadius: 6,
-                  }}
-                  maxLength={6}
-                />
-              </Form.Item>
-            
-              <Form.Item>
-                <Button
-                  type="primary"
-                  block
-                  loading={loading}
-                  onClick={handleVerifyCode}
-                  style={{
-                    fontWeight: 'bold',
-                    height: 40,
-                    borderRadius: 6,
-                  }}
-                >
-                  Verificar Código
-                </Button>
-              </Form.Item>
-            
-              <Form.Item>
-                <Button
-                  type="default"
-                  block
-                  disabled={loading}
-                  onClick={handleEmailSubmit}
-                  style={{
-                    height: 40,
-                    borderRadius: 6,
-                    marginBottom: 8,
-                  }}
-                >
-                  Reenviar Código
-                </Button>
-                <Button
-                  type="link"
-                  block
-                  onClick={() => setStage('email')}
-                  disabled={loading}
-                >
-                  Voltar e alterar e-mail
-                </Button>
-              </Form.Item>
-            </>
+                <div style={{ textAlign: 'center', marginBottom: 16 }}>
+                  <p style={{ fontSize: 14, color: '#555' }}>
+                    Um código foi enviado para <strong>{email}</strong>
+                  </p>
+                </div>
+
+                <Form.Item label={<span style={{ fontWeight: 500 }}>Código de Verificação</span>} required>
+                  <Input
+                    type="text"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    placeholder="Código"
+                    style={{
+                      fontSize: '18px',
+                      textAlign: 'center',
+                      letterSpacing: '6px',
+                      padding: '10px 14px',
+                      borderRadius: 6,
+                    }}
+                    maxLength={6}
+                  />
+                </Form.Item>
+
+                <Form.Item>
+                  <Button
+                    type="primary"
+                    htmlType="submit"  // Enter e clique funcionam
+                    block
+                    loading={loading}
+                    style={{
+                      fontWeight: 'bold',
+                      height: 40,
+                      borderRadius: 6,
+                    }}
+                  >
+                    Verificar Código
+                  </Button>
+                </Form.Item>
+
+                <Form.Item>
+                  <Button
+                    type="default"
+                    block
+                    disabled={loading}
+                    onClick={handleEmailSubmit}
+                    style={{
+                      height: 40,
+                      borderRadius: 6,
+                      marginBottom: 8,
+                    }}
+                  >
+                    Reenviar Código
+                  </Button>
+                  <Button
+                    type="link"
+                    block
+                    onClick={() => setStage('email')}
+                    disabled={loading}
+                  >
+                    Voltar e alterar e-mail
+                  </Button>
+                </Form.Item>
+              </>
             )}
           </Form>
+
         </Card>
       </Content>
 
