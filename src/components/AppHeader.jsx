@@ -19,26 +19,24 @@ const { Title } = Typography;
 const AppHeader = () => {
   const location = useLocation();
   const navigate = useNavigate();
+
   const userEmail = localStorage.getItem('auth_email');
+  const isAdmin = localStorage.getItem('is_admin'); // <-- pega o is_admin
   const userInitials = userEmail ? userEmail.split('@')[0].slice(0, 2).toUpperCase() : '';
 
   const handleLogout = async () => {
     const email = localStorage.getItem('auth_email');
-    
-    // Captura os caminhos visitados
     const visitedPaths = JSON.parse(localStorage.getItem('visited_paths')) || {};
-    
-    // Encontra o caminho mais visitado
+
     let mostVisited = '/';
     let maxCount = 0;
-    
     Object.entries(visitedPaths).forEach(([path, count]) => {
       if (count > maxCount) {
         mostVisited = path;
         maxCount = count;
       }
     });
-  
+
     try {
       await axios.post(`${process.env.REACT_APP_API_URL}/logout`, {
         email,
@@ -47,24 +45,22 @@ const AppHeader = () => {
     } catch (error) {
       console.error('Erro ao registrar logout:', error);
     }
-  
-    // Limpa o storage
+
     localStorage.removeItem('auth_token');  
     localStorage.removeItem('is_admin');
     localStorage.removeItem('auth_email');
     localStorage.removeItem('visited_paths');
-    
+
     navigate('/');
   };
-  
 
   const isActive = (path) => location.pathname.startsWith(path);
 
   const linkStyle = (path) => ({
-    color: '#fff', 
+    color: '#fff',
     fontWeight: 'bold',
     textDecoration: 'none',
-    paddingBottom: '2px', 
+    paddingBottom: '2px',
     borderBottom: isActive(path) ? '2px solid #fff' : 'none',
     transition: 'border-bottom 0.3s ease'
   });
@@ -97,10 +93,38 @@ const AppHeader = () => {
 
             {userEmail && (
               <Space size="middle" align="center" style={{ marginLeft: 24 }}>
+                {isAdmin === 'true' && (
+                  <Tooltip title="Acessar painel Admin">
+                    <Link to="/Admin">
+                      <span
+                        style={{
+                          backgroundColor: '#FFD600',
+                          color: '#000',
+                          padding: '4px 10px',
+                          borderRadius: 4,
+                          fontWeight: 'bold',
+                          fontSize: 12,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Admin
+                      </span>
+                    </Link>
+                  </Tooltip>
+                )}
+
                 <Tooltip title={userEmail}>
-                  <Avatar size="small" style={{ backgroundColor: '#7D2E61', fontSize: 15 }}>{userInitials}</Avatar>
+                  <Avatar size="small" style={{ backgroundColor: '#7D2E61', fontSize: 15 }}>
+                    {userInitials}
+                  </Avatar>
                 </Tooltip>
-                <Popconfirm title="Deseja realmente sair?" onConfirm={handleLogout} okText="Sim" cancelText="Não">
+
+                <Popconfirm
+                  title="Deseja realmente sair?"
+                  onConfirm={handleLogout}
+                  okText="Sim"
+                  cancelText="Não"
+                >
                   <span style={{ cursor: 'pointer', color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' }}>
                     <LogoutOutlined />
                   </span>
