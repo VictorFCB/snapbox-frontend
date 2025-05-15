@@ -4,6 +4,7 @@ import {
 } from 'antd';
 import { PlusOutlined, CopyOutlined, BarChartOutlined } from '@ant-design/icons';
 import axios from 'axios';
+import { v4 as uuidv4 } from 'uuid';
 
 const { Title, Text } = Typography;
 
