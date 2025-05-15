@@ -4,7 +4,6 @@ import {
 } from 'antd';
 import { PlusOutlined, CopyOutlined, BarChartOutlined } from '@ant-design/icons';
 import axios from 'axios';
-import { v4 as uuidv4 } from 'uuid';
 
 const { Title, Text } = Typography;
 
@@ -97,7 +96,6 @@ const UrlParametrizer = () => {
   
     setIsGenerating(true);
     try {
-      const trackingId = uuidv4(); // Gera um ID único para rastreamento
       
       const selectedValues = PARAMS_LIST
         .filter(param => selectedParams.includes(param) && params[param])
