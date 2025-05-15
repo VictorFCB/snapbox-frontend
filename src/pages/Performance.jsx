@@ -107,6 +107,31 @@ const Performance = () => {
     loadUrlData();
   }, [navigate]);
 
+  // No seu componente Performance
+useEffect(() => {
+  const fetchPerformanceData = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API_URL}/url-performance/${selectedUrl.id}`, {
+        params: {
+          start_date: dateRange[0].format('YYYY-MM-DD'),
+          end_date: dateRange[1].format('YYYY-MM-DD')
+        }
+      });
+      
+      setStats(response.data);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (selectedUrl) {
+    fetchPerformanceData();
+  }
+}, [selectedUrl, dateRange]);
+
   const fetchPerformanceData = async (urlId) => {
     setLoading(true);
     setError(null);

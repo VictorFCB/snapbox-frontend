@@ -93,23 +93,31 @@ const UrlParametrizer = () => {
       message.warning('A URL base é obrigatória!');
       return;
     }
-
+  
     setIsGenerating(true);
     try {
+      const trackingId = uuidv4(); // Gera um ID único para rastreamento
+      
       const selectedValues = PARAMS_LIST
         .filter(param => selectedParams.includes(param) && params[param])
-        .reduce((acc, param) => ({ ...acc, [param]: params[param] }), { agencia: agencyName });
-
+        .reduce((acc, param) => ({ ...acc, [param]: params[param] }), { 
+          agencia: agencyName,
+          tracking_id: trackingId // Adiciona o ID de rastreamento
+        });
+  
       const formData = new FormData();
       formData.append('baseUrl', baseUrl);
       formData.append('params', JSON.stringify(selectedValues));
       if (imageFile) formData.append('image', imageFile);
-
+  
       const response = await axios.post(`${API_URL}/parametrize-url`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-
-      setResultUrl(response.data.parametrizedUrl);
+  
+      // Adiciona o ID de rastreamento à URL retornada
+      const finalUrl = `${response.data.parametrizedUrl}&tracking_id=${trackingId}`;
+      
+      setResultUrl(finalUrl);
       message.success('URL parametrizada com sucesso!');
     } catch (error) {
       handleApiError(error, 'Erro ao gerar URL parametrizada.');
