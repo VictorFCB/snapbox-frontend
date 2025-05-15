@@ -24,7 +24,7 @@ const Admin = () => {
   });
 
   const [newAdminEmail, setNewAdminEmail] = useState('');
-  const [isModalVisible, setIsModalVisible] = useState(false); // Estado para controlar visibilidade do Modal
+  const [isModalVisible, setIsModalVisible] = useState(false); // Estado paraaaa controlar visibilidade do Modal
 
   useEffect(() => {
     const fetchStats = async () => {
