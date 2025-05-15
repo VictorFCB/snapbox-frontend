@@ -86,9 +86,9 @@ const AppHeader = () => {
         <Col flex="auto">
           <Row justify="end" align="middle" gutter={24} wrap={false}>
             <Space size="large">
-              <Link to="/Home" style={linkStyle('/Home')}>Home</Link>
-              <Link to="/Email" style={linkStyle('/Email')}>Send</Link>
-              <Link to="/UrlParametrizer" style={linkStyle('/UrlParametrizer')}>Parametrizer</Link>
+              <Link to="/Home" style={linkStyle('/Home')}>ImagensUpload</Link>
+              <Link to="/Email" style={linkStyle('/Email')}>TestHtml</Link>
+              <Link to="/UrlParametrizer" style={linkStyle('/UrlParametrizer')}>Parametrizar</Link>
             </Space>
 
             {userEmail && (

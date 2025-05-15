@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Row, Col, Card, Input, Button, Space, Checkbox, Select, Typography, Modal, Upload, message
 } from 'antd';
-import { PlusOutlined, CopyOutlined, EditOutlined, SaveOutlined } from '@ant-design/icons';
+import { PlusOutlined, CopyOutlined, BarChartOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
 const { Title, Text } = Typography;
@@ -129,7 +129,7 @@ const UrlParametrizer = () => {
 
   const confirmSaveUrl = async () => {
     if (isSaving) return;
-    
+
     setIsSaving(true);
     try {
       const formData = new FormData();
@@ -167,16 +167,23 @@ const UrlParametrizer = () => {
       message.error('ID inválido para exclusão');
       return;
     }
-
+  
     try {
+      // Requisição para o backend que exclui a URL e seus dados relacionados
       await axios.delete(`${API_URL}/urls/${selectedUrl.id}`);
+  
+      // Atualiza a lista de URLs salvas
       setSavedUrls(savedUrls.filter(url => url.id !== selectedUrl.id));
+  
+      // Fecha o modal
       setIsModalVisible(false);
-      message.success('URL excluída com sucesso!');
+  
+      message.success('URL e dados relacionados excluídos com sucesso!');
     } catch (error) {
       handleApiError(error, 'Erro ao excluir a URL');
     }
   };
+  
 
   const handleCopyUrl = () => {
     if (resultUrl) {
@@ -191,7 +198,7 @@ const UrlParametrizer = () => {
         await axios.put(`${API_URL}/urls/${selectedUrl.id}`, {
           name: newCampaignName
         });
-        
+
         setSavedUrls(savedUrls.map(url =>
           url.id === selectedUrl.id ? { ...url, name: newCampaignName } : url
         ));
@@ -330,9 +337,9 @@ const UrlParametrizer = () => {
 
             <Row justify="space-between" align="middle">
               <Col span={16}>
-                <Button 
-                  type="primary" 
-                  onClick={handleParametrize} 
+                <Button
+                  type="primary"
+                  onClick={handleParametrize}
                   style={{ width: '100%' }}
                   loading={isGenerating}
                 >
@@ -348,9 +355,9 @@ const UrlParametrizer = () => {
                       style={{ width: '100%', height: 40, fontSize: 14, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}
                       suffix={<Button type="text" icon={<CopyOutlined />} onClick={handleCopyUrl} style={{ padding: 0 }} />}
                     />
-                    <Button 
-                      type="default" 
-                      onClick={handleSaveUrl} 
+                    <Button
+                      type="default"
+                      onClick={handleSaveUrl}
                       style={{ width: '100%' }}
                     >
                       Salvar URL
@@ -384,6 +391,17 @@ const UrlParametrizer = () => {
             navigator.clipboard.writeText(selectedUrl?.url || '');
             message.success('URL copiada para a área de transferência!');
           }}>Copiar URL</Button>,
+          <Button
+            key="performance"
+            icon={<BarChartOutlined />} 
+            onClick={() => {
+              localStorage.setItem('selectedUrl', JSON.stringify(selectedUrl));
+              window.location.href = '/Performance';
+            }}
+          >
+            Ver Desempenho
+          </Button>
+
         ]}
       >
         {selectedUrl && (

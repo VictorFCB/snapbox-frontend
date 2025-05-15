@@ -1,21 +1,31 @@
-# Usando a imagem oficial do Node.js
-FROM node:22-alpine3.20
+# Etapa 1: Build da aplicação
+FROM node:22-alpine3.20 as build
 
-# Definir o diretório de trabalho dentro do container
 WORKDIR /app
 
-# Copiar apenas os arquivos de package.json e package-lock.json
+# Copia os arquivos de dependência primeiro (para cache mais eficiente)
 COPY ./package.json ./package-lock.json ./
-
-# Instalar as dependências
 RUN npm install
 
-# Copiar o código-fonte e arquivos estáticos
-COPY ./src ./src
-COPY ./public ./public 
+# Copia o restante do código
+COPY ./ ./
 
-# Expor a porta 3000
+# Gera o build da aplicação React
+RUN npm run build
+
+# Etapa 2: Servir os arquivos com 'serve'
+FROM node:22-alpine3.20
+
+WORKDIR /app
+
+# Instala o pacote 'serve'
+RUN npm install -g serve
+
+# Copia o build da etapa anterior
+COPY --from=build /app/build ./build
+
+# Expor a porta usada pela aplicação
 EXPOSE 3000
 
-# Comando para rodar o servidor React
-CMD ["npm", "start"]
+# Comando para servir a aplicação com fallback para index.html (essencial para BrowserRouter)
+CMD ["serve", "-s", "build", "-l", "3000"]

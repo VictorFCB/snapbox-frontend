@@ -5,19 +5,20 @@ import Email from '../pages/Email';
 import UrlParametrizer from '../pages/UrlParametrizer';
 import Login from '../pages/Login';
 import Admin from '../pages/Admin';
+import Performance from '../pages/Performance';
 import MakeVa from '../pages/MakeVa';
 
 // Componente de rota protegida para verificar se o usuário é admin
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem('auth_token');
-  const isAdmin = localStorage.getItem('is_admin');  // Verifica se o usuário é admin
-  
+  const isAdmin = localStorage.getItem('is_admin') === 'true';  // Verifica se o usuário é admin
+
   if (!isAuthenticated) {
-    return <Navigate to="/" />; // Redireciona para login caso não esteja autenticado
+    return <Navigate to="/Login" />; // Redireciona para login caso não esteja autenticado
   }
 
-  if (children.type === Admin && isAdmin !== 'true') {
-    // Se a rota for para Admin e o usuário não for admin, redireciona para Home
+  // Verifica se o usuário tem acesso à rota admin
+  if (children.type === Admin && !isAdmin) {
     return <Navigate to="/Home" />;
   }
 
@@ -32,6 +33,7 @@ function AppRoutes() {
       <Route path="/Email" element={<ProtectedRoute><Email /></ProtectedRoute>} />
       <Route path="/UrlParametrizer" element={<ProtectedRoute><UrlParametrizer /></ProtectedRoute>} />
       <Route path="/Admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+      <Route path="/Performance" element={<ProtectedRoute><Performance /></ProtectedRoute>} />
       <Route path="/MakeVa" element={<MakeVa />} />
     </Routes>
   );
