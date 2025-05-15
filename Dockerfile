@@ -1,4 +1,4 @@
-# Etapa 1: Build da aplicação React
+# Etapa 1: Build da aplicação Reacta
 FROM node:22-alpine3.20 as build
 
 WORKDIR /app
